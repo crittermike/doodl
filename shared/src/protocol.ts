@@ -167,6 +167,12 @@ export type ServerMessage =
       /** Opaque token; present it as `join.session` to reclaim this seat. */
       session: string;
       room: RoomState;
+      /**
+       * Server clock at the moment of the reply. The client diffs this against
+       * its own clock once and applies the offset to every `deadline`, so a
+       * skewed device clock can't make timers run visibly wrong.
+       */
+      now: number;
     }
   /** Full room snapshot. Sent on any structural change. */
   | { t: 'room'; room: RoomState }

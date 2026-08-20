@@ -20,7 +20,9 @@
     "dev:server": "npm run dev -w @doodl/server",
     "dev:client": "npm run dev -w @doodl/client",
     "start": "node server/dist/index.js",
-    "test": "npm run test -w @doodl/shared",
+    "test": "npm run build:shared && npm run test -w @doodl/shared && npm run build -w @doodl/server && npm run test -w @doodl/server",
+    "test:unit": "npm run test -w @doodl/shared",
+    "test:smoke": "npm run test -w @doodl/server",
     "typecheck": "npm run build:shared && npm run typecheck -w @doodl/server && npm run typecheck -w @doodl/client",
     "clean": "rm -rf shared/dist server/dist client/dist"
   },
