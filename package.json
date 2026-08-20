@@ -1,0 +1,31 @@
+{
+  "name": "doodl",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open source multiplayer drawing and guessing game. No ads, self-hostable.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build": "npm run build -w @doodl/shared && npm run build -w @doodl/server && npm run build -w @doodl/client",
+    "build:shared": "npm run build -w @doodl/shared",
+    "dev": "npm run build:shared && concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev -w @doodl/server",
+    "dev:client": "npm run dev -w @doodl/client",
+    "start": "node server/dist/index.js",
+    "test": "npm run test -w @doodl/shared",
+    "typecheck": "npm run build:shared && npm run typecheck -w @doodl/server && npm run typecheck -w @doodl/client",
+    "clean": "rm -rf shared/dist server/dist client/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
