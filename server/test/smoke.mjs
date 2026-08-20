@@ -474,6 +474,100 @@ async function main() {
   p1.close();
   p2.close();
   await sleep(200);
+
+  // --- host promotion --------------------------------------------------------
+  const h1 = new C('H1', '🐙');
+  await h1.ready;
+  h1.send({ t: 'create', name: 'Hana', avatar: '🐙' });
+  const hj1 = await h1.wait('joined');
+  const code3 = hj1.room.code;
+  check('the creator starts as host', hj1.room.hostId === hj1.you);
+
+  const h2 = new C('H2', '🦊');
+  await h2.ready;
+  h2.send({ t: 'join', name: 'Ida', avatar: '🦊', code: code3 });
+  const hj2 = await h2.wait('joined');
+
+  const h3 = new C('H3', '🐸');
+  await h3.ready;
+  h3.send({ t: 'join', name: 'Jo', avatar: '🐸', code: code3 });
+  await h3.wait('joined');
+
+  h2.clear();
+  h1.close();
+  await sleep(400);
+  const promoted = h2.last('room');
+  check(
+    'a new host is promoted when the host leaves',
+    promoted.room.hostId !== hj1.you && promoted.room.hostId.length > 0,
+    promoted.room.hostId,
+  );
+
+  const newHostIsPresent = promoted.room.players.some(
+    (p) => p.id === promoted.room.hostId && p.connected,
+  );
+  check('the promoted host is a connected player', newHostIsPresent);
+
+  // --- room capacity ---------------------------------------------------------
+  const hostClient2 = promoted.room.hostId === hj2.you ? h2 : h3;
+  hostClient2.send({ t: 'settings', settings: { maxPlayers: 2 } });
+  await sleep(200);
+
+  const overflow = new C('Overflow', '🦁');
+  await overflow.ready;
+  overflow.send({ t: 'join', name: 'Kit', avatar: '🦁', code: code3 });
+  const full = await overflow.wait('error');
+  check('joining a full room is rejected', full.code === 'ROOM_FULL', JSON.stringify(full));
+  overflow.close();
+
+  h2.close();
+  h3.close();
+  await sleep(200);
+
+  // --- drawer leaving mid-turn ----------------------------------------------
+  const d1 = new C('D1', '🐙');
+  await d1.ready;
+  d1.send({ t: 'create', name: 'Lena', avatar: '🐙' });
+  const dj1 = await d1.wait('joined');
+  const code4 = dj1.room.code;
+
+  const d2 = new C('D2', '🦊');
+  await d2.ready;
+  d2.send({ t: 'join', name: 'Milo', avatar: '🦊', code: code4 });
+  const dj2 = await d2.wait('joined');
+
+  const d3 = new C('D3', '🐸');
+  await d3.ready;
+  d3.send({ t: 'join', name: 'Nia', avatar: '🐸', code: code4 });
+  const dj3 = await d3.wait('joined');
+
+  const dById = { [dj1.you]: d1, [dj2.you]: d2, [dj3.you]: d3 };
+
+  d1.send({ t: 'settings', settings: { rounds: 1, drawTime: 120, hints: 0 } });
+  await sleep(150);
+  d1.send({ t: 'start' });
+
+  const dChoose = await d1.wait('choosing', 10_000);
+  const leaver = dById[dChoose.drawerId];
+  const watchers = [d1, d2, d3].filter((c) => c !== leaver);
+
+  await leaver.wait('choosing');
+  leaver.send({ t: 'pick', index: 0 });
+  await watchers[0].wait('turnStart', 5000);
+
+  for (const w of watchers) w.clear();
+  leaver.close();
+
+  // With a 120s draw time, only the disconnect handler can end this quickly.
+  const ended = await watchers[0].wait('turnEnd', 8000);
+  check('the turn ends when the drawer leaves', true);
+  check('the word is still revealed when the drawer leaves', typeof ended.word === 'string');
+
+  const advanced = await watchers[0].wait('choosing', 15_000);
+  check('play advances to the next drawer', advanced.drawerId !== dChoose.drawerId, advanced.drawerId);
+
+  for (const c of watchers) c.close();
+  await sleep(200);
 }
 
 main()
