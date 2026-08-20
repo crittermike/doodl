@@ -1,0 +1,51 @@
+# doodl on Fly.io
+#
+# One app, one process, serving the client and the WebSocket server together.
+#
+# SCALING NOTE: a room lives in one machine's heap, so a room is sticky to the
+# machine that created it. Running more than one machine requires routing every
+# connection for a room code back to its owner, using Fly's `fly-replay` header
+# keyed on the room code. Until that exists, keep this at a single machine.
+# See the "Scaling out" section of the README.
+
+app = "doodl"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # An idle doodl costs effectively nothing: the machine stops when the last
+  # player leaves and boots again on the next connection. The client shows a
+  # "waking up the server" state so that cold start doesn't look like a fault.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    protocol = "http"
+    timeout = "5s"
+
+# Rooms are small JSON messages and a few thousand points of stroke history.
+# 256MB is genuinely enough; the ceiling is connection count, not memory.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
