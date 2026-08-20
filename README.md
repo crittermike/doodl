@@ -7,6 +7,8 @@
 One player draws a secret word, everyone else races to guess it. Self-hostable,
 no accounts, no tracking, no ads.
 
+**[▶ Play it](https://doodl.fly.dev)**
+
 ![doodl in play](docs/screenshot.png)
 
 </div>
@@ -95,11 +97,12 @@ the runtime layer ships only the compiled output plus production dependencies.
 
 ### Fly.io
 
-`fly.toml` is included and targets the smallest useful machine.
+`fly.toml` is included and targets the smallest useful machine. A live instance
+runs at <https://doodl.fly.dev>.
 
 ```bash
 fly launch --copy-config --no-deploy   # first time only, to pick an app name
-fly deploy
+fly deploy --ha=false
 ```
 
 The configuration sets `auto_stop_machines = "stop"` and
